@@ -27,7 +27,7 @@ public class PPeeper
         internal static string Name => "Peeping Peeper";
 
         [PluginService]
-        internal DalamudPluginInterface Interface { get; init; } = null!;
+        internal IDalamudPluginInterface Interface { get; init; } = null!;
         [PluginService]
         internal ITargetManager TargetManager { get; init; } = null!;
         [PluginService]
@@ -48,13 +48,13 @@ public class PPeeper
         private bool Enabled = false;
 
         public Plugin(
-            [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-            [RequiredVersion("1.0")] ITargetManager targetManager,
-            [RequiredVersion("1.0")] IObjectTable objectTable,
-            [RequiredVersion("1.0")] IClientState clientState,
-            [RequiredVersion("1.0")] ICommandManager commandManager,
-            [RequiredVersion("1.0")] IDataManager dataManager,
-            [RequiredVersion("1.0")] IPluginLog pluginLog
+            IDalamudPluginInterface pluginInterface,
+            ITargetManager targetManager,
+            IObjectTable objectTable,
+            IClientState clientState,
+            ICommandManager commandManager,
+            IDataManager dataManager,
+            IPluginLog pluginLog
         )
         {
             this.Configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -101,10 +101,10 @@ public class PPeeper
                     if (player.PlayerName == targetMessage.Targeter.Name.ToString() && player.Homeworld == targetMessage.Targeter.HomeWorldId)
                         return;
                 }
-                var target = ObjectTable.FirstOrDefault(a => a.ObjectId == targetMessage.Targeter.ObjectId);
-                if (target!.TargetObjectId == ClientState.LocalPlayer!.ObjectId)
+                var target = ObjectTable.FirstOrDefault(a => a.GameObjectId == targetMessage.Targeter.GameObjectId);
+                if (target!.TargetObjectId == ClientState.LocalPlayer!.GameObjectId)
                     SetTarget(target);
-                else if (ClientState.LocalPlayer!.TargetObjectId == target!.ObjectId)
+                else if (ClientState.LocalPlayer!.TargetObjectId == target!.GameObjectId)
                     Provider.SendMessage(new RequestTargetersMessage());
             }
             else if (message.GetType() == typeof(AllTargetersMessage))
@@ -119,7 +119,7 @@ public class PPeeper
                     var blockedPlayer = Configuration.Players.Find(x => x.PlayerName == targeter.Name.ToString() && x.Homeworld == targeter.HomeWorldId);
                     if (blockedPlayer == null)
                     {
-                        if (targeter.GetPlayerCharacter(ObjectTable)!.TargetObjectId != ClientState.LocalPlayer!.ObjectId) continue;
+                        if (targeter.GetPlayerCharacter(ObjectTable)!.TargetObjectId != ClientState.LocalPlayer!.GameObjectId) continue;
                         if (oldestValidTarget == null || oldestValidTarget.When < targeter.When)
                             oldestValidTarget = targeter;
                     }
@@ -129,7 +129,7 @@ public class PPeeper
             }
         }
 
-        public void SetTarget(GameObject? target)
+        public void SetTarget(IGameObject? target)
         {
             if (Configuration.UseSoftTarget)
                 TargetManager.SoftTarget = target;
@@ -142,7 +142,7 @@ public class PPeeper
             if (ClientState.LocalPlayer == null)
                 return;
 
-            var target = ObjectTable.FirstOrDefault(a => a.ObjectId == ClientState.LocalPlayer.TargetObjectId) as PlayerCharacter;
+            var target = ObjectTable.FirstOrDefault(a => a.GameObjectId == ClientState.LocalPlayer.TargetObjectId) as IPlayerCharacter;
             if (target == null)
                 return;
 
@@ -161,7 +161,7 @@ public class PPeeper
             if (ClientState.LocalPlayer == null)
                 return;
 
-            var target = ObjectTable.FirstOrDefault(a => a.ObjectId == ClientState.LocalPlayer.TargetObjectId) as PlayerCharacter;
+            var target = ObjectTable.FirstOrDefault(a => a.GameObjectId == ClientState.LocalPlayer.TargetObjectId) as IPlayerCharacter;
             if (target == null)
                 return;
 
